@@ -7,6 +7,16 @@ on:
         type: boolean
         required: false
         default: false
+      config_file:
+        description: Choose which config file to run
+        type: choice
+        options:
+          - china/config.py
+          - malaysia/config.py
+          - mexico/config.py
+          - south_africa/config.py
+        required: true
+        
 jobs:
   pipeline:
     runs-on: ubuntu-latest
@@ -23,10 +33,11 @@ jobs:
         env:
           CREDENTIALS: ${{ secrets.CREDENTIALS }}
         run: |
-          python -m parenttext_pipeline.cli
+          python -m parenttext_pipeline.cli ${{ github.event.inputs.config_file }}
           echo upload=${{ inputs.upload }}
       - name: Publish output folder
         uses: actions/upload-artifact@v2
         with:
           name: Output Files
           path: output
+
