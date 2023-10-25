@@ -11,8 +11,10 @@ on:
         description: Choose which config file to run
         type: choice
         options:
-          - config-china.py
-          - config-south-africa.py
+          - china/config.py
+          - malaysia/config.py
+          - mexico/config.py
+          - south_africa/config.py
         required: true
         
 jobs:
