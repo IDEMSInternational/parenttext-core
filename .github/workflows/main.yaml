@@ -1,18 +1,18 @@
 name: Create flows
+
 on:
-  workflow_dispatch:
-    inputs:
-      upload:
-        description: Upload flows to RapidPro
-        type: boolean
-        required: false
-        default: false
+  workflow_call:
+    secrets:
+      google_credentials:
+        required: true
+        type: string
+
 jobs:
   pipeline:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Node dependencies
         run: npm ci
       - name: Install Python dependencies
@@ -21,12 +21,12 @@ jobs:
           pip install -r requirements.txt
       - name: Run pipeline
         env:
-          CREDENTIALS: ${{ secrets.CREDENTIALS }}
+          CREDENTIALS: ${{ secrets.google_credentials }}
         run: |
           python -m parenttext_pipeline.cli
           echo upload=${{ inputs.upload }}
       - name: Publish output folder
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: Output Files
           path: output
