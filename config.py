@@ -127,9 +127,6 @@ transl_edits_sheet_ID = "1fCLPfiqHy1nLLqh1qyvd3zrziw5Tz3uQ6_e7CyuEW-E"
 SG_flow_ID = "b83315a6-b25c-413a-9aa0-953bf60f223c"
 SG_flow_name = "safeguarding_wfr_interaction"
 
-# Path to file containing translated safeguarding words.
-SG_path = "./edits/safeguarding_words.json"
-
 # Names of redirect flows to be modified as part of safeguarding process.
 redirect_flow_names = (
     '['
@@ -157,7 +154,7 @@ def create_config():
         "select_phrases": select_phrases,
         "sg_flow_id": SG_flow_ID,
         "sg_flow_name": SG_flow_name,
-        "sg_path": SG_path,
+        "sg_sources": None,
         "sources": sources,
         "special_expiration": special_expiration,
         "special_words": special_words,
