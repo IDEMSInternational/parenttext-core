@@ -1,0 +1,97 @@
+name: Deploy Flows to RapidPro
+
+on:
+
+  workflow_call:
+    inputs:
+      # These inputs are required for the deployment logic.
+      rapidpro_type:
+        description: 'The type for the RapidPro importer to use, `textit` or `internal`.'
+        required: true
+        type: string
+      rapidpro_deployment_name:
+        description: 'The deployment name of the RapidPro workspace.'
+        required: true
+        type: string
+      # Needed for finding the compile artifact.
+      compile_workflow_name:
+        description: 'The name of the workflow that compiles the flows (e.g., compile.yml).'
+        required: false
+        default: 'compile.yml'
+        type: string
+    secrets:
+      RAPIDPRO_HOST:
+        required: true
+      RAPIDPRO_USERNAME:
+        required: true
+      RAPIDPRO_PASSWORD:
+        required: true
+      GITHUB_TOKEN:
+        required: true
+
+jobs:
+  deploy:
+    name: Find Artifact and Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Find successful compile run for this commit
+        id: find_run
+        run: |
+          # We use the provided compile workflow name from the input.
+          run_id=$(gh api \
+            "/repos/${{ github.repository }}/actions/workflows/${{ inputs.compile_workflow_name }}/runs?head_sha=${{ github.sha }}" \
+            --jq '.workflow_runs | map(select(.status == "completed" and .conclusion == "success")) | .[0].id')
+
+          if [ -z "$run_id" ] || [ "$run_id" == "null" ]; then
+            echo "::error::No successful 'Compile Flows' run found for commit ${{ github.sha }}. Please ensure the compile action has succeeded for this commit before deploying."
+            exit 1
+          fi
+          
+          echo "Found successful run with ID: $run_id"
+          echo "run_id=$run_id" >> $GITHUB_OUTPUT
+        env:
+          # The GITHUB_TOKEN is passed from the calling workflow secrets.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download compiled flow artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-flow
+          run-id: ${{ steps.find_run.outputs.run_id }}
+          path: ./
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+      - name: Set up Playwright
+        run: playwright install chromium
+
+      - name: Import to RapidPro
+        run: |
+          # The secrets and inputs are passed down from the caller.
+          python -m parenttext_pipeline.importer \
+            -t "${{ inputs.rapidpro_type }}" \
+            -H "${{ secrets.RAPIDPRO_HOST }}" \
+            -u "${{ secrets.RAPIDPRO_USERNAME }}" \
+            -p "${{ secrets.RAPIDPRO_PASSWORD }}" \
+            -d "${{ inputs.rapidpro_deployment_name }}" \
+            ./parenttext_all.json
+      - name: Upload failure screenshot
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: import_failure
+          path: ./import_failure.png
+          retention-days: 1
