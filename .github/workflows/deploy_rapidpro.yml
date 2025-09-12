@@ -26,8 +26,6 @@ on:
         required: true
       RAPIDPRO_PASSWORD:
         required: true
-      GITHUB_TOKEN:
-        required: true
 
 jobs:
   deploy:
