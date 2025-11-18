@@ -1,0 +1,88 @@
+
+name: Pull Data
+
+on:
+  workflow_call:
+    secrets:
+      GCP_CREDENTIALS:
+        description: 'Service account credentials for Google Cloud Platform.'
+        required: true
+      CANTO_APP_ID:
+        required: true
+      CANTO_APP_SECRET:
+        required: true
+      CANTO_USER_ID:
+        required: true
+      DEPLOYMENT_ASSET_LOCATION:
+        required: true
+      GCS_PROJECT_ID:
+        required: true
+      GCS_BUCKET_NAME:
+        required: true
+    inputs:
+      compile_workflow_name:
+        description: 'The name of the workflow that compiles the flows (e.g., compile.yaml).'
+        required: false
+        default: 'compile.yml'
+        type: string
+
+jobs:
+  media_ops:
+    name: Media Ops
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Find successful compile run for this commit
+        id: find_run
+        run: |
+          # We use the provided compile workflow name from the input.
+          run_id=$(gh api \
+            "/repos/${{ github.repository }}/actions/workflows/${{ inputs.compile_workflow_name }}/runs?head_sha=${{ github.sha }}" \
+            --jq '.workflow_runs | map(select(.status == "completed" and .conclusion == "success")) | .[0].id')
+
+          if [ -z "$run_id" ] || [ "$run_id" == "null" ]; then
+            echo "::error::No successful 'Compile Flows' run found for commit ${{ github.sha }}. Please ensure the compile action has succeeded for this commit before deploying."
+            exit 1
+          fi
+          
+          echo "Found successful run with ID: $run_id"
+          echo "run_id=$run_id" >> $GITHUB_OUTPUT
+        env:
+          # The GITHUB_TOKEN is passed from the calling workflow secrets.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download compiled flow artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-flow
+          run-id: ${{ steps.find_run.outputs.run_id }}
+          path: ./
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Data
+        env:
+          CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+          RAPIDPRO_OUTPUT: ./parenttext_all.json
+          CANTO_APP_ID: ${{ secrets.CANTO_APP_ID }}
+          CANTO_APP_SECRET: ${{ secrets.CANTO_APP_SECRET }}
+          CANTO_USER_ID: ${{ secrets.CANTO_USER_ID }}
+          DEPLOYMENT_ASSET_LOCATION: ${{ secrets.DEPLOYMENT_ASSET_LOCATION }}
+          GCS_PROJECT_ID: ${{ secrets.GCS_PROJECT_ID }}
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
+        run: python -m parenttext.media_ops --steps canto_download transcode firebase_versioned_upload verify_assets
