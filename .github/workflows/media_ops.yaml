@@ -75,7 +75,7 @@ jobs:
           path: ./
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull Data
+      - name: Media Ops
         env:
           CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
           RAPIDPRO_OUTPUT: ./parenttext_all.json
