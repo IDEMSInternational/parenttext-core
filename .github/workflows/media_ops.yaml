@@ -88,4 +88,4 @@ jobs:
           DEPLOYMENT_ASSET_LOCATION: ${{ secrets.DEPLOYMENT_ASSET_LOCATION }}
           GCS_PROJECT_ID: ${{ secrets.GCS_PROJECT_ID }}
           GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
-        run: python -m parenttext.media_ops --steps canto_download transcode firebase_versioned_upload verify_assets
+        run: python -u -m parenttext.media_ops --steps canto_download transcode firebase_versioned_upload verify_assets
