@@ -78,7 +78,7 @@ jobs:
           path: ./
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Media Ops
+      - name: Media Download
         env:
           CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
           RAPIDPRO_OUTPUT: ./parenttext_all.json
@@ -88,4 +88,38 @@ jobs:
           DEPLOYMENT_ASSET_LOCATION: ${{ secrets.DEPLOYMENT_ASSET_LOCATION }}
           GCS_PROJECT_ID: ${{ secrets.GCS_PROJECT_ID }}
           GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
-        run: python -u -m parenttext.media_ops --steps canto_download transcode firebase_versioned_upload verify_assets
+        run: python -u -m parenttext.media_ops --steps canto_download
+
+      - name: Media Transcode
+        env:
+          CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+          RAPIDPRO_OUTPUT: ./parenttext_all.json
+          CANTO_APP_ID: ${{ secrets.CANTO_APP_ID }}
+          CANTO_APP_SECRET: ${{ secrets.CANTO_APP_SECRET }}
+          CANTO_USER_ID: ${{ secrets.CANTO_USER_ID }}
+          DEPLOYMENT_ASSET_LOCATION: ${{ secrets.DEPLOYMENT_ASSET_LOCATION }}
+          GCS_PROJECT_ID: ${{ secrets.GCS_PROJECT_ID }}
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
+        run: python -u -m parenttext.media_ops --steps transcode
+      - name: Media Upload
+        env:
+          CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+          RAPIDPRO_OUTPUT: ./parenttext_all.json
+          CANTO_APP_ID: ${{ secrets.CANTO_APP_ID }}
+          CANTO_APP_SECRET: ${{ secrets.CANTO_APP_SECRET }}
+          CANTO_USER_ID: ${{ secrets.CANTO_USER_ID }}
+          DEPLOYMENT_ASSET_LOCATION: ${{ secrets.DEPLOYMENT_ASSET_LOCATION }}
+          GCS_PROJECT_ID: ${{ secrets.GCS_PROJECT_ID }}
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
+        run: python -u -m parenttext.media_ops --steps firebase_versioned_upload
+      - name: Media Verify
+        env:
+          CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+          RAPIDPRO_OUTPUT: ./parenttext_all.json
+          CANTO_APP_ID: ${{ secrets.CANTO_APP_ID }}
+          CANTO_APP_SECRET: ${{ secrets.CANTO_APP_SECRET }}
+          CANTO_USER_ID: ${{ secrets.CANTO_USER_ID }}
+          DEPLOYMENT_ASSET_LOCATION: ${{ secrets.DEPLOYMENT_ASSET_LOCATION }}
+          GCS_PROJECT_ID: ${{ secrets.GCS_PROJECT_ID }}
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
+        run: python -u -m parenttext.media_ops --steps verify_assets
