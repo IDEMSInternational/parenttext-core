@@ -1,0 +1,35 @@
+name: Attach Artifact to Release
+
+on:
+  workflow_call:
+    inputs:
+      artifact_name:
+        description: 'The name of the artifact to download (from the previous job)'
+        required: false
+        default: 'compiled-flow'
+        type: string
+      upload_filename:
+        description: 'The filename to use for the release asset'
+        required: false
+        default: 'parenttext_all.json'
+        type: string
+
+jobs:
+  attach-asset:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to upload files to a GitHub Release
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: ./
+
+      - name: Upload to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The file is downloaded to the current directory
+          # We upload it to the release that triggered this workflow
+          gh release upload ${{ github.event.release.tag_name }} "${{ inputs.upload_filename }}" --clobber
